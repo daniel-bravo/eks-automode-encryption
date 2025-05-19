@@ -142,6 +142,22 @@ export PUBLIC_CERT_ARN=$(aws acm list-certificates \
 ### Paso 3: Configuración de AWS Private CA
 
 ```bash
+
+cat > ca-config.json << 'EOF'
+{
+  "KeyAlgorithm": "RSA_2048",
+  "SigningAlgorithm": "SHA256WITHRSA",
+  "Subject": {
+    "Country": "MX",
+    "Organization": "Example Corp",
+    "OrganizationalUnit": "IT Security",
+    "State": "CDMX",
+    "Locality": "AO",
+    "CommonName": "example.com"
+  }
+}
+EOF
+
 # Crear CA privada
 aws acm-pca create-certificate-authority \
   --certificate-authority-configuration file://ca-config.json \
