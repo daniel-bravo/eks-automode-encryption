@@ -1,0 +1,96 @@
+<svg viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo y título -->
+  <rect width="1000" height="600" fill="#f8f9fa" />
+  <text x="500" y="30" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#232f3e">Encriptación End-to-End en EKS Auto Mode</text>
+  
+  <!-- Internet / Cliente -->
+  <circle cx="120" cy="150" r="50" fill="#f8991d" />
+  <text x="120" y="155" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">Cliente</text>
+  <text x="120" y="175" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="white">Internet</text>
+  
+  <!-- AWS Cloud Background -->
+  <rect x="220" y="50" width="730" height="500" rx="20" ry="20" fill="#f4f5f6" stroke="#232f3e" stroke-width="2" stroke-dasharray="5,5" />
+  <text x="585" y="75" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#232f3e">AWS Cloud</text>
+  
+  <!-- EKS Auto Mode Cluster Background -->
+  <rect x="400" y="100" width="530" height="430" rx="15" ry="15" fill="#f1faff" stroke="#007dbc" stroke-width="2" />
+  <text x="665" y="125" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#007dbc">EKS Auto Mode Cluster</text>
+  
+  <!-- ALB -->
+  <rect x="240" y="250" width="120" height="80" rx="10" ry="10" fill="#ff9900" />
+  <text x="300" y="285" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">ALB</text>
+  <text x="300" y="305" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="white">Certificado ACM</text>
+  <text x="300" y="320" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="white">(Público)</text>
+
+  <!-- NGINX Proxy -->
+  <rect x="450" y="250" width="120" height="80" rx="10" ry="10" fill="#007dbc" />
+  <text x="510" y="285" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">NGINX Proxy</text>
+  <text x="510" y="305" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="white">Certificado AWS PCA</text>
+  <text x="510" y="320" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="white">(Privado)</text>
+
+  <!-- Pods de aplicación -->
+  <rect x="700" y="200" width="100" height="60" rx="5" ry="5" fill="#3c9" />
+  <text x="750" y="235" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">Pod</text>
+  <text x="750" y="250" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="white">App 1</text>
+  
+  <rect x="700" y="290" width="100" height="60" rx="5" ry="5" fill="#3c9" />
+  <text x="750" y="325" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">Pod</text>
+  <text x="750" y="340" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="white">App 2</text>
+  
+  <rect x="700" y="380" width="100" height="60" rx="5" ry="5" fill="#3c9" />
+  <text x="750" y="415" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">Pod</text>
+  <text x="750" y="430" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="white">App 3</text>
+
+  <!-- AWS Private CA -->
+  <rect x="450" y="450" width="120" height="60" rx="10" ry="10" fill="#876543" />
+  <text x="510" y="475" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">AWS Private CA</text>
+  <text x="510" y="495" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="white">Emisión de certificados</text>
+
+  <!-- AWS Certificate Manager -->
+  <rect x="240" y="450" width="120" height="60" rx="10" ry="10" fill="#876543" />
+  <text x="300" y="475" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">AWS ACM</text>
+  <text x="300" y="495" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="white">Gestión de certificados</text>
+
+  <!-- Líneas de conexión -->
+  <!-- Cliente a ALB -->
+  <line x1="170" y1="150" x2="240" y2="250" stroke="#00a36c" stroke-width="3" />
+  <text x="180" y="180" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#00a36c">HTTPS</text>
+  <text x="180" y="195" font-family="Arial, sans-serif" font-size="12" fill="#00a36c">Cert. Público</text>
+  
+  <!-- ALB a NGINX -->
+  <line x1="360" y1="290" x2="450" y2="290" stroke="#00a36c" stroke-width="3" />
+  <text x="405" y="280" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#00a36c">HTTPS</text>
+  <text x="405" y="295" font-family="Arial, sans-serif" font-size="12" fill="#00a36c">Cert. Privado</text>
+  
+  <!-- NGINX a Pods -->
+  <line x1="570" y1="290" x2="650" y2="290" stroke="#bbb" stroke-width="3" stroke-dasharray="5,5" />
+  <line x1="650" y1="290" x2="700" y2="230" stroke="#bbb" stroke-width="3" stroke-dasharray="5,5" />
+  <line x1="650" y1="290" x2="700" y2="320" stroke="#bbb" stroke-width="3" stroke-dasharray="5,5" />
+  <line x1="650" y1="290" x2="700" y2="410" stroke="#bbb" stroke-width="3" stroke-dasharray="5,5" />
+  <text x="595" y="280" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#888">HTTP</text>
+  <text x="595" y="295" font-family="Arial, sans-serif" font-size="12" fill="#888">No encriptado</text>
+  
+  <!-- AWS PCA a NGINX -->
+  <line x1="510" y1="450" x2="510" y2="330" stroke="#876543" stroke-width="2" stroke-dasharray="5,5" />
+  <polygon points="510,330 505,340 515,340" fill="#876543" />
+  
+  <!-- AWS ACM a ALB -->
+  <line x1="300" y1="450" x2="300" y2="330" stroke="#876543" stroke-width="2" stroke-dasharray="5,5" />
+  <polygon points="300,330 295,340 305,340" fill="#876543" />
+
+  <!-- Leyenda -->
+  <rect x="780" y="450" width="20" height="10" fill="#00a36c" />
+  <text x="805" y="459" font-family="Arial, sans-serif" font-size="12" fill="#333">Tráfico encriptado (HTTPS)</text>
+  
+  <rect x="780" y="470" width="20" height="10" fill="#bbb" />
+  <text x="805" y="479" font-family="Arial, sans-serif" font-size="12" fill="#333">Tráfico no encriptado (HTTP)</text>
+  
+  <rect x="780" y="490" width="20" height="10" fill="#ff9900" />
+  <text x="805" y="499" font-family="Arial, sans-serif" font-size="12" fill="#333">Servicios AWS</text>
+  
+  <rect x="780" y="510" width="20" height="10" fill="#3c9" />
+  <text x="805" y="519" font-family="Arial, sans-serif" font-size="12" fill="#333">Pods (contenedores de terceros)</text>
+
+  <!-- Titulo de Flujos -->
+  <text x="500" y="560" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#333">Flujo del tráfico: Cliente → ALB → NGINX Proxy → Pods</text>
+</svg>
