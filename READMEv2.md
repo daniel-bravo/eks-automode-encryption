@@ -240,13 +240,15 @@ spec:
   region: ${AWS_REGION}
 EOF
 
-kubectl apply -f awspca-issuer.yaml
+
 ```
 
 ### Paso 7: Crear namespace para la aplicación
 
 ```bash
 kubectl create namespace app-namespace
+
+kubectl apply -f awspca-issuer.yaml
 ```
 
 ### Paso 8: Implementar el juego 2048 como aplicación de demostración
