@@ -98,13 +98,16 @@ La arquitectura implementa una estrategia de encriptación en capas, aprovechand
 ### Paso 1: Creación del Clúster EKS Auto Mode
 
 ```bash
+export CLUSTER_NAME="eks-automode-secure"
+export AWS_REGION="us-east-1"
+
 
 cat <<EOF > cluster-config.yaml
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 metadata:
-  name: eks-automode-secure
-  region: us-east-1
+  name: ${CLUSTER_NAME}
+  region: ${AWS_REGION}
   version: "1.32"
 autoModeConfig:
   enabled: true
