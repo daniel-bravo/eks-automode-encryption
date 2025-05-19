@@ -29,7 +29,7 @@ Es importante destacar que AWS proporciona varias capas de encriptación por def
 
 ## Arquitectura de la Solución
 
-![Diagrama de Arquitectura de Encriptación](https://example.com/eks-encryption-diagram.png)
+![Diagrama de Arquitectura de Encriptación](eks-encryption-diagram.svg)
 
 La arquitectura implementa una estrategia de encriptación en capas, aprovechando las capacidades nativas de AWS y añadiendo capas adicionales donde sea necesario:
 
