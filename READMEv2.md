@@ -119,8 +119,8 @@ kind: ClusterConfig
 metadata:
   name: ${CLUSTER_NAME}
   region: ${AWS_REGION}
-  version: "1.28"
-autoMode:
+  version: "1.32"
+autoModeConfig:
   enabled: true
 iam:
   withOIDC: true
@@ -210,6 +210,11 @@ EOF
 aws iam create-policy \
   --policy-name AWSPCAIssuerPolicy \
   --policy-document file://pca-issuer-policy.json
+
+
+#Asociar el IAM OpenID Connect provider al cluster
+
+eksctl utils associate-iam-oidc-provider --region=us-east-1 --cluster=${CLUSTER_NAME} --approve
 
 # Configurar cuenta de servicio con IRSA
 eksctl create iamserviceaccount \
