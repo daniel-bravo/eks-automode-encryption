@@ -473,14 +473,25 @@ Configuraremos un IngressClass y un Ingress para exponer nuestra aplicación:
 ```bash
 # Crear un IngressClass para el ALB
 cat <<EOF > ingress-class.yaml
+apiVersion: eks.amazonaws.com/v1
+kind: IngressClassParams
+metadata:
+  name: eks-auto-alb
+spec:
+  scheme: internet-facing
+---
 apiVersion: networking.k8s.io/v1
 kind: IngressClass
 metadata:
-  name: alb
+  name: eks-auto-alb
   annotations:
     ingressclass.kubernetes.io/is-default-class: "true"
 spec:
-  controller: ingress.k8s.aws/alb
+  controller: eks.amazonaws.com/alb
+  parameters:
+    apiGroup: eks.amazonaws.com
+    kind: IngressClassParams
+    name: eks-auto-alb
 EOF
 
 kubectl apply -f ingress-class.yaml
@@ -493,9 +504,7 @@ metadata:
   name: app-ingress
   namespace: app-namespace
   annotations:
-    kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/certificate-arn: ${PUBLIC_CERT_ARN}
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:678702182018:certificate/5e2e3d12-d955-4ed1-a904-568539cf68be
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
     alb.ingress.kubernetes.io/backend-protocol: HTTPS
@@ -504,8 +513,9 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-path: /health
     alb.ingress.kubernetes.io/target-type: ip
 spec:
+  ingressClassName: eks-auto-alb
   rules:
-  - host: ${APP_DOMAIN}
+  - host: eksautomode.dbravo.org
     http:
       paths:
       - path: /
