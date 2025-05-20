@@ -504,7 +504,7 @@ metadata:
   name: app-ingress
   namespace: app-namespace
   annotations:
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:678702182018:certificate/5e2e3d12-d955-4ed1-a904-568539cf68be
+    alb.ingress.kubernetes.io/certificate-arn: ${PUBLIC_CERTIFICATE_ARN}
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
     alb.ingress.kubernetes.io/backend-protocol: HTTPS
@@ -515,7 +515,7 @@ metadata:
 spec:
   ingressClassName: eks-auto-alb
   rules:
-  - host: eksautomode.dbravo.org
+  - host: ${PUBLIC_DOMAIN}
     http:
       paths:
       - path: /
