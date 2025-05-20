@@ -71,7 +71,7 @@ metadata:
   name: ${CLUSTER_NAME}
   region: ${AWS_REGION}
   version: "${K8S_VERSION}"
-autoMode:
+autoModeConfig:
   enabled: true
 iam:
   withOIDC: true
