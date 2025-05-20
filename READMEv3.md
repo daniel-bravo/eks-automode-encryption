@@ -340,9 +340,8 @@ spec:
   duration: 2160h0m0s  # 90 días
   renewBefore: 360h0m0s  # 15 días
   subject:
-    commonName: "nginx-proxy-service.app-namespace.svc.cluster.local"
     organizations:
-      - "Mi Empresa"  # Usar el mismo valor que en la CA
+      - "Example Corp"  # Usar el mismo valor que en la CA
   dnsNames:
     - "nginx-proxy-service.app-namespace.svc.cluster.local"
     - "nginx-proxy-service"
