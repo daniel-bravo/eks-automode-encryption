@@ -59,9 +59,9 @@ Primero, vamos a crear un clúster EKS con Auto Mode habilitado:
 
 ```bash
 # Configurar variables de entorno
-export CLUSTER_NAME="eks-secure-demo"
+export CLUSTER_NAME="eks-auto-mode-secure-demo"
 export AWS_REGION="us-east-1"
-export K8S_VERSION="1.28"
+export K8S_VERSION="1.32"
 
 # Crear archivo de configuración del clúster
 cat <<EOF > cluster-config.yaml
