@@ -120,7 +120,7 @@ Ahora debes crear el registro CNAME de validación en tu DNS para validar la pro
 
 ## Configuración de AWS Private CA
 
-A continuación, crearemos una Autoridad Certificadora Privada para emitir certificados internos:
+A continuación, crearemos una Autoridad Certificadora Privada para emitir certificados internos (en caso de que no haya un PCA):
 
 ```bash
 # Crear configuración de la CA privada
