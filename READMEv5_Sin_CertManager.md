@@ -167,125 +167,33 @@ Si necesitas crear una nueva CA privada, puedes hacerlo desde la **Consola de AW
 
 En lugar de usar CLI, vamos a generar los certificados directamente desde la **Consola de AWS** para mayor facilidad:
 
-### Paso 1: Generar CSR localmente
-
-Primero necesitamos generar la clave privada y el CSR (Certificate Signing Request) para NGINX:
-
-```bash
-# Configurar variables para el certificado interno
-export INTERNAL_DOMAIN="nginx-proxy-service.app-namespace.svc.cluster.local"
-
-# Crear directorio para certificados
-mkdir -p certificates
-cd certificates
-
-# Generar clave privada para el servicio NGINX
-openssl genrsa -out nginx-private-key.pem 2048
-
-# Generar CSR para NGINX con múltiples nombres DNS
-cat <<EOF > nginx.conf
-[req]
-distinguished_name = req_distinguished_name
-req_extensions = v3_req
-prompt = no
-
-[req_distinguished_name]
-C = US
-ST = Washington
-L = Seattle
-O = Mi Empresa
-OU = IT
-CN = ${INTERNAL_DOMAIN}
-
-[v3_req]
-keyUsage = keyEncipherment, dataEncipherment
-extendedKeyUsage = serverAuth
-subjectAltName = @alt_names
-
-[alt_names]
-DNS.1 = ${INTERNAL_DOMAIN}
-DNS.2 = nginx-proxy-service
-DNS.3 = nginx-proxy-service.app-namespace
-EOF
-
-# Generar CSR
-openssl req -new -key nginx-private-key.pem -out nginx.csr -config nginx.conf
-
-echo "CSR generado: nginx.csr"
-echo "Clave privada: nginx-private-key.pem"
-
-# Volver al directorio principal
-cd ..
-```
-
-### Paso 2: Emitir certificado usando la Consola AWS
+### Paso 1: Emitir certificado usando la Consola AWS
 
 Ahora usaremos la **Consola de AWS** para emitir el certificado:
 
-#### 2.1. Abrir la Consola de AWS Private CA
-1. Ve a **AWS Console > Certificate Manager > Private CAs**
+#### 1.1. Abrir la Consola de AWS Private CA
+1. Ve a **AWS Console > Certificate Manager > Request certificate**
 2. Selecciona tu CA privada existente
 3. Clic en **"Issue certificate"**
+4. Ingresa el dominio, para este ejemplo: "nginx-proxy-service.app-namespace.svc.cluster.local"
 
-#### 2.2. Configurar la solicitud de certificado
-1. **Certificate signing request (CSR)**:
-   - Selecciona **"Provide your own CSR"**
-   - Abre el archivo `certificates/nginx.csr` en un editor de texto
-   - Copia todo el contenido (incluyendo `-----BEGIN CERTIFICATE REQUEST-----` y `-----END CERTIFICATE REQUEST-----`)
-   - Pega el contenido en el campo de texto de la consola
 
-2. **Certificate template**:
-   - Selecciona **"EndEntityServerAuthCertificate/V1"**
-
-3. **Validity period**:
-   - Ingresa **90** para Days
-   - O selecciona el período que prefieras
-
-4. **Signing algorithm**:
-   - Deja el valor por defecto: **SHA256WITHRSA**
-
-#### 2.3. Emitir el certificado
+#### 1.2. Emitir el certificado
 1. Clic en **"Issue certificate"**
-2. **Importante**: Copia el **Certificate ARN** que aparece - lo necesitaremos después
-3. Espera unos minutos a que el certificado se emita (estado debe cambiar a "Issued")
+2. Espera unos minutos a que el certificado se emita (estado debe cambiar a "Issued")
 
-### Paso 3: Descargar el certificado desde la consola
+### Paso 2: Descargar el certificado desde la consola
 
 Una vez emitido el certificado:
 
-#### 3.1. Descargar usando la Consola
+#### 2.1. Descargar usando la Consola
 1. En la página de tu CA privada, ve a la pestaña **"Certificates"**
 2. Encuentra tu certificado recién emitido
 3. Clic en el **Certificate ID**
-4. En la página de detalles del certificado:
-   - Clic en **"Download certificate body"** → guarda como `certificates/nginx-cert.pem`
-   - Clic en **"Download certificate chain"** → guarda como `certificates/nginx-cert-chain.pem`
+4. En la opción More actions > Export:
+   - Ingresa un passphrase y click en Billing acknowledgment
+5. Descarga los archivos generados
 
-#### 3.2. O descargar usando CLI (opcional)
-Si prefieres usar CLI con el ARN del certificado:
-
-```bash
-# Reemplazar CERTIFICATE_ARN con el ARN copiado de la consola
-export NGINX_CERT_ARN="arn:aws:acm-pca:us-east-1:123456789012:certificate-authority/your-ca-id/certificate/your-cert-id"
-
-cd certificates
-
-# Obtener el certificado emitido
-aws acm-pca get-certificate \
-  --certificate-authority-arn ${CA_ARN} \
-  --certificate-arn ${NGINX_CERT_ARN} \
-  --query 'Certificate' \
-  --output text > nginx-cert.pem
-
-# Obtener la cadena de certificados
-aws acm-pca get-certificate \
-  --certificate-authority-arn ${CA_ARN} \
-  --certificate-arn ${NGINX_CERT_ARN} \
-  --query 'CertificateChain' \
-  --output text > nginx-cert-chain.pem
-
-cd ..
-```
 
 ### Paso 4: Crear certificado completo
 
@@ -293,22 +201,20 @@ cd ..
 cd certificates
 
 # Crear certificado completo (certificado + cadena)
-cat nginx-cert.pem nginx-cert-chain.pem > nginx-full-cert.pem
+cat certificate.txt certificate_chain.txt > nginx-full-cert.pem
 
 # Verificar que el certificado es válido
 openssl x509 -in nginx-full-cert.pem -text -noout | grep -A5 "Subject:"
 
 # Verificar que la clave privada coincide con el certificado
 openssl x509 -noout -modulus -in nginx-full-cert.pem | openssl md5
+
+mv private_key.txt nginx-private-key.pem
 openssl rsa -noout -modulus -in nginx-private-key.pem | openssl md5
 # Los dos hashes deben ser idénticos
 
 cd ..
 
-echo "Certificado privado generado exitosamente para NGINX"
-echo "Archivos creados:"
-echo "  - certificates/nginx-private-key.pem (clave privada)"
-echo "  - certificates/nginx-full-cert.pem (certificado completo)"
 ```
 
 ### Verificación visual en la consola
@@ -321,7 +227,6 @@ Para verificar que todo está correcto, en la **Consola de AWS**:
 4. Deberías ver tu certificado con estado **"Issued"**
 5. Los detalles deben mostrar los nombres DNS que configuraste
 
-Esta aproximación es mucho más visual y fácil de seguir, especialmente para quienes prefieren interfaces gráficas sobre comandos CLI complejos.
 
 ## Despliegue de la aplicación 2048
 
