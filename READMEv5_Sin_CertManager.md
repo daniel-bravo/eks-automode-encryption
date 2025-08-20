@@ -91,12 +91,6 @@ eksctl create cluster -f cluster-config.yaml
 kubectl get nodes
 ```
 
-Posteriormente, es necesario agregar los addons como metrics-server:
-
-```bash
-aws eks update-addon --cluster-name eks-auto-mode-secure-demo --addon-name metrics-server --addon-version latest --region us-east-1
-```
-
 ## Configuración de AWS Certificate Manager (ACM)
 
 **Fuente oficial**: [SSL certificates for Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/https-listener-certificates.html)
