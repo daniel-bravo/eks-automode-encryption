@@ -280,10 +280,13 @@ kubectl get service -n app-namespace
 **Cambio principal**: En lugar de usar cert-manager, instalaremos manualmente el certificado generado:
 
 ```bash
+# Desencriptar la clave
+openssl rsa -in certificates/nginx-private-key.pem -out certificates/nginx-private-key-decrypted.pem
+
 # Crear secret TLS manualmente con los certificados generados
 kubectl create secret tls nginx-tls \
   --cert=certificates/nginx-full-cert.pem \
-  --key=certificates/nginx-private-key.pem \
+  --key=certificates/nginx-private-key-decrypted.pem \
   --namespace=app-namespace
 
 # Verificar que el secret se creó correctamente
