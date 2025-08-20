@@ -571,61 +571,40 @@ Finalmente, abre un navegador y visita `https://${APP_DOMAIN}/` para verificar q
 ### Script para verificar expiración
 
 ```bash
-# Script mejorado para verificar expiración de certificados
-cat <<EOF > check-cert-expiry.sh
+cat <<EOF > simple-cert-check.sh
 #!/bin/bash
 CERT_FILE="certificates/nginx-full-cert.pem"
 
-if [ ! -f "\${CERT_FILE}" ]; then
-    echo "Archivo de certificado no encontrado: \${CERT_FILE}"
-    exit 1
-fi
+echo "=== Verificación simple de certificado ==="
+echo "Archivo: \${CERT_FILE}"
+echo ""
 
-# Obtener fecha de expiración en formato más manejable
-EXPIRY_DATE=\$(openssl x509 -enddate -noout -in \${CERT_FILE} | cut -d= -f2)
-echo "Fecha de expiración del certificado: \${EXPIRY_DATE}"
+echo "=== Fechas del certificado ==="
+openssl x509 -in \${CERT_FILE} -dates -noout
 
-# Usar date con mejor manejo de formatos
-EXPIRY_EPOCH=\$(date -d "\${EXPIRY_DATE}" +%s 2>/dev/null)
-if [ \$? -ne 0 ]; then
-    echo "Error: No se puede parsear la fecha de expiración"
-    echo "Formato de fecha recibido: \${EXPIRY_DATE}"
-    exit 1
-fi
-
-CURRENT_EPOCH=\$(date +%s)
-DAYS_UNTIL_EXPIRY=\$(( (EXPIRY_EPOCH - CURRENT_EPOCH) / 86400 ))
-
-echo "Fecha actual: \$(date)"
-echo "Certificado expira en \${DAYS_UNTIL_EXPIRY} días"
-
-if [ \${DAYS_UNTIL_EXPIRY} -lt 0 ]; then
-    echo "¡ERROR! El certificado YA EXPIRÓ hace \$((-DAYS_UNTIL_EXPIRY)) días"
-    echo "¡RENOVAR INMEDIATAMENTE!"
-elif [ \${DAYS_UNTIL_EXPIRY} -le 7 ]; then
-    echo "¡CRÍTICO! El certificado expira en menos de 7 días. ¡Renovar INMEDIATAMENTE!"
-elif [ \${DAYS_UNTIL_EXPIRY} -le 30 ]; then
-    echo "¡ADVERTENCIA! El certificado expira pronto. Considerar renovación."
-    echo ""
-    echo "Pasos para renovar:"
-    echo "1. Ir a AWS Console > Certificate Manager > Private CAs"
-    echo "2. Seleccionar tu CA privada"
-    echo "3. Clic en 'Issue certificate'"
-    echo "4. Usar el CSR existente en certificates/nginx.csr"
-    echo "5. Descargar el nuevo certificado"
-    echo "6. Actualizar el secret en Kubernetes"
+echo ""
+echo "=== Estado actual ==="
+if openssl x509 -in \${CERT_FILE} -checkend 0 > /dev/null 2>&1; then
+    echo "✅ Certificado vigente"
 else
-    echo "✅ El certificado está vigente por \${DAYS_UNTIL_EXPIRY} días más."
+    echo "❌ Certificado expirado"
 fi
 
-# Mostrar información adicional del certificado
 echo ""
-echo "=== Información del certificado ==="
-openssl x509 -in \${CERT_FILE} -text -noout | grep -A5 "Subject:"
+echo "=== Alertas de renovación ==="
+if ! openssl x509 -in \${CERT_FILE} -checkend 604800 > /dev/null 2>&1; then
+    echo "🚨 CRÍTICO: Expira en menos de 7 días"
+elif ! openssl x509 -in \${CERT_FILE} -checkend 2592000 > /dev/null 2>&1; then
+    echo "⚠️  ADVERTENCIA: Expira en menos de 30 días"
+else
+    echo "✅ Certificado válido por más de 30 días"
+fi
+
 echo ""
-openssl x509 -in \${CERT_FILE} -text -noout | grep -A10 "Subject Alternative Name"
+echo "=== Subject del certificado ==="
+openssl x509 -in \${CERT_FILE} -subject -noout
 EOF
 
-chmod +x check-cert-expiry.sh
+chmod +x simple-cert-check.sh
 ```
 
