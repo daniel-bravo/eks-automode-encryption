@@ -135,94 +135,41 @@ Ahora debes crear el registro CNAME de validación en tu DNS para validar la pro
 
 **Fuente oficial**: [Issue private end-entity certificates](https://docs.aws.amazon.com/privateca/latest/userguide/PcaIssueCert.html)
 
-A continuación, crearemos una Autoridad Certificadora Privada para emitir certificados internos:
+**NOTA IMPORTANTE**: Este tutorial asume que ya tienes una AWS Private CA configurada y activa en tu cuenta.
+
+Para obtener el ARN de tu CA existente:
 
 ```bash
-# Crear configuración de la CA privada
-cat <<EOF > ca-config.json
-{
-  "KeyAlgorithm": "RSA_2048",
-  "SigningAlgorithm": "SHA256WITHRSA",
-  "Subject": {
-    "Country": "US",
-    "Organization": "Mi Empresa",
-    "OrganizationalUnit": "Seguridad",
-    "State": "Washington",
-    "Locality": "Seattle",
-    "CommonName": "Mi Empresa Private CA"
-  }
-}
-EOF
+# Listar todas las CAs en tu cuenta
+aws acm-pca list-certificate-authorities --region ${AWS_REGION}
 
-# Crear configuración de revocación (CRL deshabilitado para simplificar)
-cat <<EOF > revoke-config.json
-{
-  "CrlConfiguration": {
-    "Enabled": false
-  }
-}
-EOF
+# Configurar el ARN de tu CA existente (reemplazar con tu ARN real)
+export CA_ARN="arn:aws:acm-pca:us-east-1:123456789012:certificate-authority/12345678-1234-1234-1234-123456789012"
 
-# Crear la CA privada
-aws acm-pca create-certificate-authority \
-  --certificate-authority-configuration file://ca-config.json \
-  --certificate-authority-type "ROOT" \
-  --revocation-configuration file://revoke-config.json \
-  --tags Key=Environment,Value=Production
-
-# Esperar a que la CA se cree
-sleep 30
-
-# Obtener el ARN de la CA privada
-export CA_ARN=$(aws acm-pca list-certificate-authorities \
-  --query "CertificateAuthorities[?Status=='PENDING_CERTIFICATE'].Arn" \
-  --output text)
-
-echo "CA privada ARN: ${CA_ARN}"
-
-# Generar CSR para la CA raíz
-openssl genrsa -out ca-private-key.pem 2048
-openssl req -new -key ca-private-key.pem -out ca.csr -subj "/C=US/ST=Washington/L=Seattle/O=Mi Empresa/OU=Seguridad/CN=Mi Empresa Private CA"
-
-# Emitir el certificado raíz de la CA
-aws acm-pca issue-certificate \
-  --certificate-authority-arn ${CA_ARN} \
-  --csr fileb://ca.csr \
-  --signing-algorithm "SHA256WITHRSA" \
-  --validity Value=3650,Type="DAYS" \
-  --template-arn arn:aws:acm-pca:::template/RootCACertificate/V1
-
-# Esperar a que el certificado se emita
-sleep 60
-
-# Obtener el ARN del certificado raíz
-export ROOT_CERT_ARN=$(aws acm-pca list-certificates \
-  --certificate-authority-arn ${CA_ARN} \
-  --query "Certificates[0].Arn" \
-  --output text)
-
-# Obtener el certificado raíz y instalarlo en la CA
-aws acm-pca get-certificate \
-  --certificate-authority-arn ${CA_ARN} \
-  --certificate-arn ${ROOT_CERT_ARN} \
-  --query 'Certificate' \
-  --output text > ca-cert.pem
-
-# Instalar el certificado en la CA para activarla
-aws acm-pca import-certificate-authority-certificate \
-  --certificate-authority-arn ${CA_ARN} \
-  --certificate fileb://ca-cert.pem
-
-echo "CA privada activada correctamente"
+# Verificar que la CA está activa
+aws acm-pca describe-certificate-authority --certificate-authority-arn ${CA_ARN} --query 'CertificateAuthority.Status'
 ```
 
-***NOTA***: La validación CRL está deshabilitada para simplificar el proceso. En producción, considera habilitarla con los permisos apropiados.
+Si necesitas crear una nueva CA privada, puedes hacerlo desde la **Consola de AWS > Certificate Manager > Private CAs** siguiendo estos pasos:
 
-## Generación manual de certificados privados
+1. **Crear CA privada**:
+   - Ir a AWS Certificate Manager > Private CAs
+   - Clic en "Create private CA"
+   - Seleccionar "Root CA"
+   - Configurar los detalles de la organización
+   - Crear y activar la CA
 
-**Fuente oficial**: [AWS CLI issue-certificate command](https://docs.aws.amazon.com/cli/latest/reference/acm-pca/issue-certificate.html)
+2. **Una vez creada, obtener su ARN** desde la consola y configurarlo en la variable de entorno arriba.
 
-Ahora generaremos manualmente los certificados privados que usará NGINX:
+## Generación de certificados privados via Consola AWS
+
+**Fuente oficial**: [AWS Certificate Manager Private CA Console Guide](https://docs.aws.amazon.com/privateca/latest/userguide/PcaIssueCert.html)
+
+En lugar de usar CLI, vamos a generar los certificados directamente desde la **Consola de AWS** para mayor facilidad:
+
+### Paso 1: Generar CSR localmente
+
+Primero necesitamos generar la clave privada y el CSR (Certificate Signing Request) para NGINX:
 
 ```bash
 # Configurar variables para el certificado interno
@@ -264,22 +211,64 @@ EOF
 # Generar CSR
 openssl req -new -key nginx-private-key.pem -out nginx.csr -config nginx.conf
 
-# Emitir certificado usando AWS PCA
-aws acm-pca issue-certificate \
-  --certificate-authority-arn ${CA_ARN} \
-  --csr fileb://nginx.csr \
-  --signing-algorithm "SHA256WITHRSA" \
-  --validity Value=90,Type="DAYS" \
-  --template-arn arn:aws:acm-pca:::template/EndEntityServerAuthCertificate/V1
+echo "CSR generado: nginx.csr"
+echo "Clave privada: nginx-private-key.pem"
 
-# Esperar a que el certificado se emita
-sleep 60
+# Volver al directorio principal
+cd ..
+```
 
-# Obtener el ARN del certificado nginx
-export NGINX_CERT_ARN=$(aws acm-pca list-certificates \
-  --certificate-authority-arn ${CA_ARN} \
-  --query "Certificates[0].Arn" \
-  --output text)
+### Paso 2: Emitir certificado usando la Consola AWS
+
+Ahora usaremos la **Consola de AWS** para emitir el certificado:
+
+#### 2.1. Abrir la Consola de AWS Private CA
+1. Ve a **AWS Console > Certificate Manager > Private CAs**
+2. Selecciona tu CA privada existente
+3. Clic en **"Issue certificate"**
+
+#### 2.2. Configurar la solicitud de certificado
+1. **Certificate signing request (CSR)**:
+   - Selecciona **"Provide your own CSR"**
+   - Abre el archivo `certificates/nginx.csr` en un editor de texto
+   - Copia todo el contenido (incluyendo `-----BEGIN CERTIFICATE REQUEST-----` y `-----END CERTIFICATE REQUEST-----`)
+   - Pega el contenido en el campo de texto de la consola
+
+2. **Certificate template**:
+   - Selecciona **"EndEntityServerAuthCertificate/V1"**
+
+3. **Validity period**:
+   - Ingresa **90** para Days
+   - O selecciona el período que prefieras
+
+4. **Signing algorithm**:
+   - Deja el valor por defecto: **SHA256WITHRSA**
+
+#### 2.3. Emitir el certificado
+1. Clic en **"Issue certificate"**
+2. **Importante**: Copia el **Certificate ARN** que aparece - lo necesitaremos después
+3. Espera unos minutos a que el certificado se emita (estado debe cambiar a "Issued")
+
+### Paso 3: Descargar el certificado desde la consola
+
+Una vez emitido el certificado:
+
+#### 3.1. Descargar usando la Consola
+1. En la página de tu CA privada, ve a la pestaña **"Certificates"**
+2. Encuentra tu certificado recién emitido
+3. Clic en el **Certificate ID**
+4. En la página de detalles del certificado:
+   - Clic en **"Download certificate body"** → guarda como `certificates/nginx-cert.pem`
+   - Clic en **"Download certificate chain"** → guarda como `certificates/nginx-cert-chain.pem`
+
+#### 3.2. O descargar usando CLI (opcional)
+Si prefieres usar CLI con el ARN del certificado:
+
+```bash
+# Reemplazar CERTIFICATE_ARN con el ARN copiado de la consola
+export NGINX_CERT_ARN="arn:aws:acm-pca:us-east-1:123456789012:certificate-authority/your-ca-id/certificate/your-cert-id"
+
+cd certificates
 
 # Obtener el certificado emitido
 aws acm-pca get-certificate \
@@ -295,14 +284,44 @@ aws acm-pca get-certificate \
   --query 'CertificateChain' \
   --output text > nginx-cert-chain.pem
 
+cd ..
+```
+
+### Paso 4: Crear certificado completo
+
+```bash
+cd certificates
+
 # Crear certificado completo (certificado + cadena)
 cat nginx-cert.pem nginx-cert-chain.pem > nginx-full-cert.pem
 
-# Volver al directorio principal
+# Verificar que el certificado es válido
+openssl x509 -in nginx-full-cert.pem -text -noout | grep -A5 "Subject:"
+
+# Verificar que la clave privada coincide con el certificado
+openssl x509 -noout -modulus -in nginx-full-cert.pem | openssl md5
+openssl rsa -noout -modulus -in nginx-private-key.pem | openssl md5
+# Los dos hashes deben ser idénticos
+
 cd ..
 
 echo "Certificado privado generado exitosamente para NGINX"
+echo "Archivos creados:"
+echo "  - certificates/nginx-private-key.pem (clave privada)"
+echo "  - certificates/nginx-full-cert.pem (certificado completo)"
 ```
+
+### Verificación visual en la consola
+
+Para verificar que todo está correcto, en la **Consola de AWS**:
+
+1. Ve a **Certificate Manager > Private CAs**
+2. Selecciona tu CA
+3. Pestaña **"Certificates"**
+4. Deberías ver tu certificado con estado **"Issued"**
+5. Los detalles deben mostrar los nombres DNS que configuraste
+
+Esta aproximación es mucho más visual y fácil de seguir, especialmente para quienes prefieren interfaces gráficas sobre comandos CLI complejos.
 
 ## Despliegue de la aplicación 2048
 
@@ -644,77 +663,152 @@ kubectl run test-curl --image=curlimages/curl --rm -it --restart=Never -- sh
 
 Finalmente, abre un navegador y visita `https://${APP_DOMAIN}/` para verificar que el juego 2048 se carga correctamente y que la conexión es segura.
 
-## Renovación manual de certificados
+## Renovación manual de certificados via Consola AWS
 
-**Importante**: Sin cert-manager, la renovación es manual. Aquí tienes un script para renovar certificados:
+**Importante**: Sin cert-manager, la renovación es manual. Aquí está el proceso usando la **Consola de AWS**:
+
+### Script para verificar expiración
 
 ```bash
-# Script de renovación manual (ejecutar cuando el certificado esté cerca de expirar)
-cat <<EOF > renew-certificate.sh
+# Script para verificar expiración de certificados
+cat <<EOF > check-cert-expiry.sh
 #!/bin/bash
+CERT_FILE="certificates/nginx-full-cert.pem"
 
-# Configurar variables
-CA_ARN="${CA_ARN}"
-NAMESPACE="app-namespace"
-SECRET_NAME="nginx-tls"
+if [ ! -f "\${CERT_FILE}" ]; then
+    echo "Archivo de certificado no encontrado: \${CERT_FILE}"
+    exit 1
+fi
 
-# Generar nuevo certificado
-cd certificates
-openssl req -new -key nginx-private-key.pem -out nginx-new.csr -config nginx.conf
+EXPIRY_DATE=\$(openssl x509 -enddate -noout -in \${CERT_FILE} | cut -d= -f2)
+EXPIRY_EPOCH=\$(date -d "\${EXPIRY_DATE}" +%s)
+CURRENT_EPOCH=\$(date +%s)
+DAYS_UNTIL_EXPIRY=\$(( (EXPIRY_EPOCH - CURRENT_EPOCH) / 86400 ))
 
-# Emitir nuevo certificado
-NEW_CERT_ARN=\$(aws acm-pca issue-certificate \
-  --certificate-authority-arn \${CA_ARN} \
-  --csr fileb://nginx-new.csr \
-  --signing-algorithm "SHA256WITHRSA" \
-  --validity Value=90,Type="DAYS" \
-  --template-arn arn:aws:acm-pca:::template/EndEntityServerAuthCertificate/V1 \
-  --query 'CertificateArn' --output text)
+echo "Certificado expira en \${DAYS_UNTIL_EXPIRY} días (\${EXPIRY_DATE})"
 
-# Esperar a que el certificado se emita
-sleep 60
-
-# Obtener el nuevo certificado
-aws acm-pca get-certificate \
-  --certificate-authority-arn \${CA_ARN} \
-  --certificate-arn \${NEW_CERT_ARN} \
-  --query 'Certificate' \
-  --output text > nginx-cert-new.pem
-
-aws acm-pca get-certificate \
-  --certificate-authority-arn \${CA_ARN} \
-  --certificate-arn \${NEW_CERT_ARN} \
-  --query 'CertificateChain' \
-  --output text > nginx-cert-chain-new.pem
-
-cat nginx-cert-new.pem nginx-cert-chain-new.pem > nginx-full-cert-new.pem
-
-# Actualizar el secret en Kubernetes
-kubectl create secret tls \${SECRET_NAME}-new \
-  --cert=nginx-full-cert-new.pem \
-  --key=nginx-private-key.pem \
-  --namespace=\${NAMESPACE}
-
-# Hacer backup del secret anterior
-kubectl get secret \${SECRET_NAME} -n \${NAMESPACE} -o yaml > \${SECRET_NAME}-backup-\$(date +%Y%m%d).yaml
-
-# Reemplazar el secret
-kubectl delete secret \${SECRET_NAME} -n \${NAMESPACE}
-kubectl create secret tls \${SECRET_NAME} \
-  --cert=nginx-full-cert-new.pem \
-  --key=nginx-private-key.pem \
-  --namespace=\${NAMESPACE}
-
-# Reiniciar los pods de NGINX para cargar el nuevo certificado
-kubectl rollout restart deployment/nginx-proxy -n \${NAMESPACE}
-
-echo "Certificado renovado exitosamente"
-
-cd ..
+if [ \${DAYS_UNTIL_EXPIRY} -le 30 ]; then
+    echo "¡ADVERTENCIA! El certificado expira pronto. Renovar siguiendo estos pasos:"
+    echo ""
+    echo "1. Ir a AWS Console > Certificate Manager > Private CAs"
+    echo "2. Seleccionar tu CA privada"
+    echo "3. Clic en 'Issue certificate'"
+    echo "4. Usar el CSR existente en certificates/nginx.csr"
+    echo "5. Descargar el nuevo certificado"
+    echo "6. Actualizar el secret en Kubernetes"
+    echo ""
+elif [ \${DAYS_UNTIL_EXPIRY} -le 7 ]; then
+    echo "¡CRÍTICO! El certificado expira en menos de 7 días. ¡Renovar INMEDIATAMENTE!"
+else
+    echo "El certificado está vigente."
+fi
 EOF
 
-chmod +x renew-certificate.sh
+chmod +x check-cert-expiry.sh
 ```
+
+### Proceso de renovación paso a paso
+
+Cuando necesites renovar (recomendado: 30 días antes de expirar):
+
+#### 1. Usar el CSR existente para solicitar nuevo certificado
+```bash
+# El archivo certificates/nginx.csr puede reutilizarse
+echo "Usar el archivo CSR existente: certificates/nginx.csr"
+echo "Contenido del CSR:"
+cat certificates/nginx.csr
+```
+
+#### 2. Emitir nuevo certificado en la Consola AWS
+1. **AWS Console > Certificate Manager > Private CAs**
+2. Seleccionar tu CA privada
+3. Clic en **"Issue certificate"**
+4. **"Provide your own CSR"** → usar `certificates/nginx.csr`
+5. Misma configuración que antes:
+   - Template: **EndEntityServerAuthCertificate/V1**
+   - Validity: **90 days**
+   - Algorithm: **SHA256WITHRSA**
+6. **Issue certificate** y copiar el nuevo Certificate ARN
+
+#### 3. Descargar nuevo certificado
+- Descargar **certificate body** → `certificates/nginx-cert-new.pem`
+- Descargar **certificate chain** → `certificates/nginx-cert-chain-new.pem`
+
+#### 4. Actualizar archivos y secret en Kubernetes
+```bash
+cd certificates
+
+# Crear nuevo certificado completo
+cat nginx-cert-new.pem nginx-cert-chain-new.pem > nginx-full-cert-new.pem
+
+# Verificar el nuevo certificado
+openssl x509 -in nginx-full-cert-new.pem -text -noout | grep -A5 "Subject:"
+
+# Verificar que coincide con la clave privada existente
+openssl x509 -noout -modulus -in nginx-full-cert-new.pem | openssl md5
+openssl rsa -noout -modulus -in nginx-private-key.pem | openssl md5
+# Los hashes deben ser idénticos
+
+# Backup del certificado anterior
+kubectl get secret nginx-tls -n app-namespace -o yaml > nginx-tls-backup-$(date +%Y%m%d).yaml
+
+# Crear nuevo secret temporalmente
+kubectl create secret tls nginx-tls-new \
+  --cert=nginx-full-cert-new.pem \
+  --key=nginx-private-key.pem \
+  --namespace=app-namespace
+
+# Reemplazar el secret original
+kubectl delete secret nginx-tls -n app-namespace
+kubectl create secret tls nginx-tls \
+  --cert=nginx-full-cert-new.pem \
+  --key=nginx-private-key.pem \
+  --namespace=app-namespace
+
+# Reiniciar los pods de NGINX para cargar el nuevo certificado
+kubectl rollout restart deployment/nginx-proxy -n app-namespace
+
+# Limpiar archivos temporales
+mv nginx-full-cert.pem nginx-full-cert-old.pem
+mv nginx-full-cert-new.pem nginx-full-cert.pem
+
+cd ..
+
+echo "Certificado renovado exitosamente usando la Consola AWS"
+```
+
+### Programar verificaciones regulares
+
+Crea un recordatorio para verificar certificados:
+
+```bash
+# Crear script de monitoreo semanal
+cat <<EOF > weekly-cert-check.sh
+#!/bin/bash
+echo "=== Verificación semanal de certificados - \$(date) ==="
+./check-cert-expiry.sh
+echo ""
+echo "Próxima verificación programada para: \$(date -d '+7 days')"
+EOF
+
+chmod +x weekly-cert-check.sh
+
+# Ejecutar verificación inicial
+./check-cert-expiry.sh
+```
+
+### Ventajas del método con Consola AWS:
+- ✅ **Visual**: Interfaz gráfica fácil de usar
+- ✅ **Verificación**: Puedes ver el estado del certificado en tiempo real
+- ✅ **Histórico**: Lista de todos los certificados emitidos
+- ✅ **Sin CLI**: No necesitas recordar comandos complejos
+- ✅ **Validación**: La consola valida el CSR antes de emitir
+
+### Recordatorios importantes:
+- 📅 **Verificar semanalmente** con `./check-cert-expiry.sh`
+- 🔔 **Renovar 30 días antes** de la expiración
+- 💾 **Hacer backup** del secret antes de actualizar
+- 🔄 **Reiniciar pods** después de actualizar certificados
 
 ## Solución de problemas comunes
 
