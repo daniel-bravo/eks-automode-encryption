@@ -566,7 +566,7 @@ Finalmente, abre un navegador y visita `https://${APP_DOMAIN}/` para verificar q
 
 ## Renovación manual de certificados via Consola AWS
 
-**Importante**: Sin cert-manager, la renovación es manual. Aquí está el proceso usando la **Consola de AWS**:
+**Importante**: Sin cert-manager, la renovación es manual. Tendrán que renovar los certificados manualmente en el Ingress**:
 
 ### Script para verificar expiración
 
